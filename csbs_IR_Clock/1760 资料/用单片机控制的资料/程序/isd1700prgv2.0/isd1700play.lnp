@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"main.obj",
+"isd1700.obj" 
+TO "isd1700play" 

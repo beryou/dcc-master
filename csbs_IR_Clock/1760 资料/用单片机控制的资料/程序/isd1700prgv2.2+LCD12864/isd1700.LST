@@ -1,0 +1,509 @@
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 1   
+
+
+C51 COMPILER V7.06, COMPILATION OF MODULE ISD1700
+OBJECT MODULE PLACED IN isd1700.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE isd1700.c BROWSE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          //#pragma src
+   2          #include "reg51.h"
+   3          #include "ISD1700.H"
+   4          #include "sound.h"
+   5          #define  uchar unsigned char 
+   6          #define  uint  unsigned int
+   7          
+   8          sbit ISD_SS=P0^7;
+   9          sbit ISD_MISO=P0^4;
+  10          sbit ISD_MOSI=P0^5;
+  11          sbit ISD_SCLK=P0^6;
+  12          
+  13          sbit DAC_sync=P2^0;
+  14          sbit DAC_sclk=P2^1;
+  15          sbit DAC_din =P2^2;
+  16          
+  17          bit  re_fig;
+  18          
+  19          uchar data  comm_temp;
+  20          
+  21          uchar data ISD_COMM_RAM[7];
+  22          uchar data ISD_COMM_RAM_C[7];
+  23          uchar data *isd_comm_ptr;
+  24          uchar data *back_data_ptr;
+  25          
+  26          void  init(void);
+  27          void  delay(int x);
+  28          void  comm_sate(void);
+  29          void  rest_isd_comm_ptr(void);
+  30          uchar T_R_comm_byte( uchar comm_data );
+  31          void isd1700_par2_comm(uchar comm_par, uint data_par);
+  32          void isd1700_Npar_comm(uchar comm_par,comm_byte_count); //no parameter comm
+  33          void isd1700_7byte_comm(uchar comm_par, uint star_addr, uint end_addr);
+  34          
+  35          void  spi_pu (void);
+  36          void  spi_stop (void);
+  37          void  spi_Rest ( void );
+  38          void  spi_CLR_INT(void);
+  39          void  spi_RD_STAUS(void);
+  40          void  spi_RD_play_ptr(void);
+  41          void  spi_pd(void);
+  42          void  spi_RD_rec_ptr(void);
+  43          void  spi_devid(void);
+  44          void  spi_play(void);
+  45          void  spi_rec (void);
+  46          void  spi_erase (void);
+  47          void  spi_G_ERASE (void);
+  48          void  spi_rd_apc(void);
+  49          void  spi_wr_apc1 (void);
+  50          void  spi_wr_apc2 (void);
+  51          void  spi_wr_nvcfg (void);
+  52          void  spi_ld_nvcfg (void);
+  53          void  spi_fwd (void);
+  54          void  spi_chk_mem(void);
+  55          void  spi_CurrRowAddr(void);
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 2   
+
+  56          
+  57          void  seril_back_sate(uchar byte_number);
+  58          void  spi_set_opt(uchar spi_set_comm);
+  59          
+  60          
+  61          void  comm_sate(void)
+  62                {
+  63   1              uchar sate_temp;
+  64   1                      uint  apc_temp;         
+  65   1                  if(RI)
+  66   1                        { sate_temp=SBUF;
+  67   2                          
+  68   2                              if(sate_temp==0x09)
+  69   2                    { spi_devid();}
+  70   2                    
+  71   2                  if(sate_temp==0x44)
+  72   2                                {spi_rd_apc();}
+  73   2      
+  74   2                  if(sate_temp==0x40)
+  75   2                                {spi_play();}
+  76   2                              
+  77   2                                if(sate_temp==0x04)
+  78   2                                {spi_CLR_INT();}
+  79   2      
+  80   2                                if(sate_temp==0x05)
+  81   2                                {spi_RD_STAUS();}
+  82   2      
+  83   2                                if(sate_temp==0x43)
+  84   2                                { spi_G_ERASE();}
+  85   2      
+  86   2                    if(sate_temp==0x01)
+  87   2                    { spi_pu ();}
+  88   2                     
+  89   2                                if(sate_temp==0x02)
+  90   2                    { spi_stop();}
+  91   2                    
+  92   2                                if(sate_temp==0x03)
+  93   2                    { spi_Rest ();}
+  94   2                                
+  95   2      
+  96   2                  if(sate_temp==0x06)
+  97   2                                {spi_RD_play_ptr();}
+  98   2      
+  99   2                  if(sate_temp==0x07)
+ 100   2                                {spi_pd();}
+ 101   2      
+ 102   2                                if(sate_temp==0x08)
+ 103   2                                { spi_RD_rec_ptr();}
+ 104   2      
+ 105   2                                if(sate_temp==0x41)
+ 106   2                                { spi_rec();}
+ 107   2      
+ 108   2      
+ 109   2                                if(sate_temp==0x42)
+ 110   2                    { spi_erase();}
+ 111   2                    
+ 112   2                  if(sate_temp==0x45)
+ 113   2                                {spi_wr_apc1 ();}
+ 114   2      
+ 115   2                  if(sate_temp==0x65)
+ 116   2                                { spi_wr_apc2 ();}
+ 117   2                              
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 3   
+
+ 118   2                                if(sate_temp==0x46)
+ 119   2                                { spi_wr_nvcfg ();}
+ 120   2      
+ 121   2                                if(sate_temp==0x47)
+ 122   2                                { spi_ld_nvcfg ();}
+ 123   2      
+ 124   2                                if(sate_temp==0x48)
+ 125   2                                { spi_fwd ();}
+ 126   2      
+ 127   2                                if(sate_temp==0x49)
+ 128   2                    { spi_chk_mem();}
+ 129   2      
+ 130   2                                if(sate_temp==0x60)
+ 131   2                      { spi_CurrRowAddr();}
+ 132   2                    
+ 133   2                  if(sate_temp==0x80)
+ 134   2                                {   
+ 135   3                      spi_set_opt(ISD1700_SET_PLAY|ISD_LED); 
+ 136   3                                      //spi_set_opt(ISD1700_SET_PLAY);
+ 137   3                                }
+ 138   2      
+ 139   2                  if(sate_temp==0x81)
+ 140   2                                {
+ 141   3                                  spi_set_opt(ISD1700_SET_REC|ISD_LED);
+ 142   3                                      //spi_set_opt(ISD1700_SET_REC);
+ 143   3                      ISD_COMM_RAM_C[0]=ISD1700_SET_REC ;
+ 144   3                      seril_back_sate(1);
+ 145   3                                }
+ 146   2                              
+ 147   2                                if(sate_temp==0x82)
+ 148   2                                {
+ 149   3                                  spi_set_opt(ISD1700_SET_ERASE|ISD_LED);
+ 150   3                                      //spi_set_opt(ISD1700_SET_ERASE);
+ 151   3                                }
+ 152   2      
+ 153   2                    if(sate_temp==ISD1700_WR_APC2)
+ 154   2                             {  
+ 155   3                                    RI=0;
+ 156   3                                        while(!RI);
+ 157   3                        apc_temp=SBUF;
+ 158   3                                        apc_temp=apc_temp<<8;
+ 159   3                                        RI=0;
+ 160   3                        while(!RI);
+ 161   3                        apc_temp|=SBUF;
+ 162   3                                        RI=0;
+ 163   3                        ISD_SS=0;
+ 164   3                        isd1700_par2_comm(ISD1700_WR_APC2,apc_temp);
+ 165   3                        ISD_SS=1;
+ 166   3                     }
+ 167   2      
+ 168   2                          RI=0;                  
+ 169   2                        }
+ 170   1                      if(re_fig)
+ 171   1                        { 
+ 172   2                          rest_isd_comm_ptr();
+ 173   2                              sate_temp=0;
+ 174   2                              do{
+ 175   3                              SBUF=*back_data_ptr++;
+ 176   3                              while(!TI);
+ 177   3                                  TI=0;
+ 178   3                                 }while(++sate_temp<=2);
+ 179   2                  re_fig=0;
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 4   
+
+ 180   2                        }
+ 181   1                 }
+ 182          
+ 183          void  spi_set_opt(uchar spi_set_comm)
+ 184                {   
+ 185   1                    uint  start_addr,end_addr;
+ 186   1                RI=0;
+ 187   1                        while(!RI);
+ 188   1                start_addr=SBUF;
+ 189   1                        start_addr=start_addr<<8;
+ 190   1                        RI=0;
+ 191   1                while(!RI);
+ 192   1                start_addr|=SBUF;
+ 193   1                    RI=0;
+ 194   1      
+ 195   1                        while(!RI);
+ 196   1                end_addr=SBUF;
+ 197   1                        end_addr=start_addr<<8;
+ 198   1                        RI=0;
+ 199   1                while(!RI);
+ 200   1                end_addr|=SBUF;
+ 201   1                        RI=0;
+ 202   1                        
+ 203   1                ISD_SS=0;
+ 204   1                isd1700_7byte_comm(spi_set_comm, start_addr, end_addr);
+ 205   1                ISD_SS=1;  
+ 206   1              }                         
+ 207          
+ 208          void  spi_pu (void)
+ 209                {  
+ 210   1                       ISD_SS=0;
+ 211   1               isd1700_Npar_comm(ISD1700_PU,2);    
+ 212   1                       ISD_SS=1;
+ 213   1            }
+ 214          
+ 215          void  spi_stop (void)
+ 216                {  
+ 217   1                       ISD_SS=0;
+ 218   1               isd1700_Npar_comm(ISD1700_STOP,2);     
+ 219   1                       ISD_SS=1;
+ 220   1               ISD_COMM_RAM_C[0]=ISD1700_STOP ;
+ 221   1               seril_back_sate(1);
+ 222   1            }
+ 223          void  spi_Rest (void)
+ 224                 {
+ 225   1               ISD_SS=0;
+ 226   1               isd1700_Npar_comm(ISD1700_REST,2);    
+ 227   1                       ISD_SS=1;
+ 228   1                 }
+ 229          
+ 230          void  spi_CLR_INT(void) 
+ 231                 {   
+ 232   1                  ISD_SS=0;
+ 233   1                  isd1700_Npar_comm(ISD1700_CLR_INT,2);     
+ 234   1                          ISD_SS=1;
+ 235   1                   }
+ 236          
+ 237          
+ 238          void  spi_RD_STAUS(void)
+ 239                {     uchar i;
+ 240   1                  ISD_SS=0;
+ 241   1                  isd1700_Npar_comm(ISD1700_RD_STAUS,3);   
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 5   
+
+ 242   1                          ISD_SS=1;
+ 243   1                  i=ISD_COMM_RAM_C[1];                    
+ 244   1                              //j=ISD_COMM_RAM_C[2];
+ 245   1                  ISD_COMM_RAM_C[1]=ISD_COMM_RAM_C[0];   
+ 246   1                  ISD_COMM_RAM_C[0]=i;
+ 247   1                  seril_back_sate(3);
+ 248   1             }
+ 249          
+ 250          void  spi_CurrRowAddr(void)
+ 251                 {    uchar i;
+ 252   1                  ISD_SS=0;
+ 253   1                  isd1700_Npar_comm(ISD1700_RD_STAUS,3); 
+ 254   1                          ISD_SS=1;
+ 255   1                              i=ISD_COMM_RAM_C[1];
+ 256   1                  ISD_COMM_RAM_C[1]=ISD_COMM_RAM_C[0]>>5|ISD_COMM_RAM_C[1]<<3;  
+ 257   1                  ISD_COMM_RAM_C[0]= i >>5;   
+ 258   1                  seril_back_sate(3);
+ 259   1                 }
+ 260          
+ 261          void  spi_RD_play_ptr(void)
+ 262                 {    uchar i;
+ 263   1                  ISD_SS=0;
+ 264   1                  isd1700_Npar_comm(ISD1700_RD_PLAY_PTR,4);      
+ 265   1                          ISD_SS=1;                   
+ 266   1                              i=ISD_COMM_RAM_C[3]&0x03;               
+ 267   1                  ISD_COMM_RAM_C[3]=ISD_COMM_RAM_C[2];    
+ 268   1                              ISD_COMM_RAM_C[2]=i;
+ 269   1                              seril_back_sate(4);
+ 270   1                 }
+ 271          
+ 272          void  spi_pd(void)
+ 273                 {
+ 274   1                      ISD_SS=0;
+ 275   1                  isd1700_Npar_comm(ISD1700_PD,2);
+ 276   1                              ISD_SS=1;
+ 277   1                 }
+ 278          
+ 279          void  spi_RD_rec_ptr(void)
+ 280                 {    uchar i;
+ 281   1                  ISD_SS=0;
+ 282   1                  isd1700_Npar_comm(ISD1700_RD_REC_PTR,4);      
+ 283   1                          ISD_SS=1;
+ 284   1                              i=ISD_COMM_RAM_C[3]&0x03;                 
+ 285   1                  ISD_COMM_RAM_C[3]=ISD_COMM_RAM_C[2]; 
+ 286   1                              ISD_COMM_RAM_C[2]=i;
+ 287   1                              seril_back_sate(4);
+ 288   1                 }
+ 289          
+ 290          void  spi_devid(void)
+ 291                {
+ 292   1                  ISD_SS=0;
+ 293   1                  isd1700_Npar_comm(ISD1700_DEVID,3);   
+ 294   1                          ISD_SS=1;
+ 295   1                  ISD_COMM_RAM_C[2]=ISD_COMM_RAM_C[2]&0xf8; 
+ 296   1                              seril_back_sate(3);
+ 297   1             }
+ 298          
+ 299          void  spi_play(void)
+ 300                 {   
+ 301   1                  ISD_SS=0;
+ 302   1                  isd1700_Npar_comm(ISD1700_PLAY|ISD_LED,2);    
+ 303   1                          ISD_SS=1;
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 6   
+
+ 304   1               }
+ 305          
+ 306          void  spi_rec (void)
+ 307                 {
+ 308   1                  ISD_SS=0;
+ 309   1                  isd1700_Npar_comm(ISD1700_REC|ISD_LED,2);      
+ 310   1                          ISD_SS=1;
+ 311   1                  ISD_COMM_RAM_C[0]=ISD1700_REC ;
+ 312   1                  seril_back_sate(1);
+ 313   1                 }
+ 314          
+ 315          void  spi_erase (void)
+ 316                 {
+ 317   1                  ISD_SS=0;
+ 318   1                  isd1700_Npar_comm(ISD1700_ERASE|ISD_LED,2);      
+ 319   1                          ISD_SS=1;
+ 320   1                 }
+ 321          
+ 322          void  spi_G_ERASE (void) 
+ 323                 { 
+ 324   1                  ISD_SS=0;
+ 325   1                  isd1700_Npar_comm(ISD1700_G_ERASE|ISD_LED,2);    
+ 326   1                          ISD_SS=1;
+ 327   1                 }
+ 328          
+ 329          
+ 330          void  spi_rd_apc(void)
+ 331                { 
+ 332   1                  ISD_SS=0;
+ 333   1                  isd1700_Npar_comm(ISD1700_RD_APC,4);
+ 334   1                          ISD_SS=1;
+ 335   1                              seril_back_sate(4);
+ 336   1             }
+ 337          
+ 338          void  spi_wr_apc1 (void)
+ 339                {
+ 340   1            }
+ 341          void  spi_wr_apc2 (void)
+ 342                {
+ 343   1                   ISD_SS=0;
+ 344   1                   isd1700_par2_comm(ISD1700_WR_APC2, 0x0400);
+ 345   1                   ISD_SS=1;
+ 346   1            }
+ 347          
+ 348          void  spi_wr_nvcfg (void)
+ 349                {
+ 350   1                  ISD_SS=0;
+ 351   1                  isd1700_Npar_comm(ISD1700_WR_NVCFG,2);      
+ 352   1                          ISD_SS=1;
+ 353   1                }
+ 354          
+ 355          void  spi_ld_nvcfg (void)
+ 356                {
+ 357   1                      ISD_SS=0;
+ 358   1                  isd1700_Npar_comm(ISD1700_LD_NVCFG ,2);      
+ 359   1                          ISD_SS=1;
+ 360   1            }
+ 361          void  spi_fwd (void)
+ 362                  {
+ 363   1                  ISD_SS=0;
+ 364   1                  isd1700_Npar_comm(ISD1700_FWD,2);      
+ 365   1                          ISD_SS=1;
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 7   
+
+ 366   1                      }
+ 367          void  spi_chk_mem(void)
+ 368                  {
+ 369   1                          ISD_SS=0;
+ 370   1                  isd1700_Npar_comm(ISD1700_CHK_MEM,2);      
+ 371   1                          ISD_SS=1;
+ 372   1                      }
+ 373          
+ 374          void  seril_back_sate(uchar byte_number)
+ 375                  {
+ 376   1                        uchar sate_temp;
+ 377   1                rest_isd_comm_ptr();
+ 378   1                        sate_temp=0;
+ 379   1                        do{
+ 380   2                              SBUF=*back_data_ptr++;
+ 381   2                              while(!TI);
+ 382   2                                  TI=0;
+ 383   2                               }while(++sate_temp<byte_number);
+ 384   1                      }
+ 385          
+ 386          void rest_isd_comm_ptr(void)
+ 387                  {
+ 388   1                   isd_comm_ptr=ISD_COMM_RAM;
+ 389   1               back_data_ptr=ISD_COMM_RAM_C; 
+ 390   1              }
+ 391          
+ 392          void isd1700_Npar_comm (uchar comm_par,comm_byte_count)
+ 393                 {   
+ 394   1                   uchar i;
+ 395   1                       i=0;
+ 396   1                       ISD_COMM_RAM[0]=comm_par;
+ 397   1                       isd_comm_ptr=&ISD_COMM_RAM[1];
+ 398   1                       do{ 
+ 399   2                           *isd_comm_ptr++=NULL;
+ 400   2                          }while(++i<comm_byte_count-1);
+ 401   1      
+ 402   1                       rest_isd_comm_ptr();            
+ 403   1               i=0;
+ 404   1               do{
+ 405   2                   *back_data_ptr++=T_R_comm_byte(*isd_comm_ptr++);
+ 406   2                   i++;
+ 407   2                 }while(i<comm_byte_count);
+ 408   1                  }
+ 409          
+ 410          void isd1700_par2_comm(uchar comm_par, uint data_par)
+ 411                  {
+ 412   1               uchar i;
+ 413   1                   ISD_COMM_RAM[0]=comm_par;
+ 414   1               ISD_COMM_RAM[1]=data_par;
+ 415   1               ISD_COMM_RAM[2]=data_par>>8;         
+ 416   1               rest_isd_comm_ptr();            
+ 417   1               i=0;
+ 418   1               do{
+ 419   2                   *back_data_ptr++=T_R_comm_byte(*isd_comm_ptr++);
+ 420   2                   i++;
+ 421   2                 }while(i<3);
+ 422   1              }
+ 423          
+ 424          void isd1700_7byte_comm(uchar comm_par, uint star_addr, uint end_addr)
+ 425                 {
+ 426   1               uchar i;
+ 427   1                   ISD_COMM_RAM[0]=comm_par;
+C51 COMPILER V7.06   ISD1700                                                               06/13/2011 20:38:05 PAGE 8   
+
+ 428   1                       ISD_COMM_RAM[1]=NULL;
+ 429   1                       ISD_COMM_RAM[2]=star_addr;
+ 430   1               ISD_COMM_RAM[3]=star_addr>>8;
+ 431   1               ISD_COMM_RAM[4]=end_addr;
+ 432   1               ISD_COMM_RAM[5]=end_addr>>8;
+ 433   1               ISD_COMM_RAM[6]=NULL;
+ 434   1               rest_isd_comm_ptr();            
+ 435   1               i=0;
+ 436   1               do{
+ 437   2                   *back_data_ptr++=T_R_comm_byte(*isd_comm_ptr++);
+ 438   2                   i++;
+ 439   2                 }while(i<=7);
+ 440   1             }
+ 441          
+ 442          uchar T_R_comm_byte( uchar comm_data )
+ 443                {
+ 444   1               uchar bit_nuber;
+ 445   1                       uchar temp;
+ 446   1                       bit_nuber=0;
+ 447   1                       temp=0;
+ 448   1                       do{
+ 449   2                           ISD_SCLK=0;
+ 450   2                   delay(1);
+ 451   2                           if((comm_data>>bit_nuber&0x01)!=0) 
+ 452   2                      {ISD_MOSI=1;}
+ 453   2                   else
+ 454   2                                  {ISD_MOSI=0;}
+ 455   2                   if(ISD_MISO)
+ 456   2                                 {temp=(temp>>1)|0x80;}
+ 457   2                   else
+ 458   2                                 {temp=temp>>1;}
+ 459   2                   ISD_SCLK=1;
+ 460   2                   delay(1);
+ 461   2                               
+ 462   2                              }while(++bit_nuber<=7);
+ 463   1               ISD_MOSI=0;
+ 464   1                        return (temp);
+ 465   1                }
+ 466          
+ 467          void delay(int x)
+ 468                {  
+ 469   1                   uchar i;
+ 470   1                       for(; x>=1; x--)
+ 471   1                        {for(;i<=20;i++);}
+ 472   1            }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1027    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     17      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

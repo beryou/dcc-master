@@ -1,0 +1,175 @@
+CHIP ID : 20
+
+Status Register 0 :
+
+CMDERR : 0
+  FULL : 0
+    PU : 1
+   EOM : 0
+   INT : 0
+  LINE : 0x001a
+
+Status Register 1 :
+
+   RDY : 1
+ REASE : 0
+  PLAY : 0
+   REC : 0
+   SE4 : 0
+   SE3 : 0
+   SE2 : 0
+   SE1 : 0
+
+APC Register :
+
+       Volume : 0
+Monitor_Input : 0
+    Mix_Input : 0
+   SE_Editing : 0
+       SPI_FT : 1
+Analog Output : 0
+      PWM SPK : 0
+PU Analog Out : 0
+       VAlert : 1
+   EOM Enable : 0
+
+APC Register :
+
+       Volume : 7
+Monitor_Input : 0
+    Mix_Input : 0
+   SE_Editing : 0
+       SPI_FT : 1
+Analog Output : 0
+      PWM SPK : 0
+PU Analog Out : 0
+       VAlert : 1
+   EOM Enable : 0
+
+PLAY Pointer : 0x0010
+
+RECORD Pointer : 0x0190
+
+PLAY done.
+PLAY Pointer : 0x001b
+
+PLAY done.
+PLAY Pointer : 0x0025
+
+PLAY done.
+PLAY Pointer : 0x002d
+
+PLAY done.
+PLAY Pointer : 0x0037
+
+PLAY done.
+PLAY Pointer : 0x0041
+
+PLAY done.
+PLAY Pointer : 0x004b
+
+PLAY done.
+PLAY Pointer : 0x0054
+
+PLAY done.
+PLAY Pointer : 0x005d
+
+PLAY done.
+PLAY Pointer : 0x0065
+
+
+PLAY done.
+PLAY Pointer : 0x0071 点
+
+PLAY done.
+PLAY Pointer : 0x007a 分
+
+PLAY done.
+PLAY Pointer : 0x0083 秒
+
+PLAY done.
+PLAY Pointer : 0x008c 十
+
+PLAY done.
+PLAY Pointer : 0x0094 百
+
+PLAY done.
+PLAY Pointer : 0x009d 千
+
+PLAY done.
+PLAY Pointer : 0x00a7 万
+
+PLAY done.
+PLAY Pointer : 0x00b0 温
+
+PLAY done.
+PLAY Pointer : 0x00ba 湿
+
+PLAY done.
+PLAY Pointer : 0x00c4 度
+
+PLAY done.
+PLAY Pointer : 0x00cf 摄氏
+
+PLAY done.
+PLAY Pointer : 0x00da 
+
+PLAY done.
+PLAY Pointer : 0x00e8 气压
+
+PLAY done.
+PLAY Pointer : 0x00f3 帕
+
+PLAY done.
+PLAY Pointer : 0x00fd
+
+PLAY done.
+PLAY Pointer : 0x010e 
+
+PLAY done.
+PLAY Pointer : 0x011c 元
+
+PLAY done.
+PLAY Pointer : 0x0124 角
+
+PLAY done.
+PLAY Pointer : 0x012f 亿
+
+PLAY done.
+PLAY Pointer : 0x0137 之
+
+PLAY done.
+PLAY Pointer : 0x0141 年
+
+PLAY done.
+PLAY Pointer : 0x014b 月
+
+PLAY done.
+PLAY Pointer : 0x0154 日
+
+PLAY done.
+PLAY Pointer : 0x015d 星期
+
+PLAY done.
+PLAY Pointer : 0x0167 整
+
+PLAY done.
+PLAY Pointer : 0x0171 正
+
+PLAY done.
+PLAY Pointer : 0x017a 负
+
+PLAY done.
+PLAY Pointer : 0x0182 上
+
+PLAY done.
+PLAY Pointer : 0x0188 下
+
+PLAY done.
+PLAY Pointer : 0x0010
+
+PLAY done.
+PLAY Pointer : 0x001b
+
+PLAY done.
+PLAY Pointer : 0x0025

@@ -1,0 +1,176 @@
+C51 COMPILER V8.09   MAIN                                                                  05/08/2011 23:49:38 PAGE 1   
+
+
+C51 COMPILER V8.09, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil3\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          
+   2          /***************************************************************************/
+   3          /***************************************************************************/
+   4          /**************ISD1700系列开发板主控程序 Ver2.0*****************************/
+   5          //  功能描述:
+   6          //      单片机与语音芯片之间采用SPI通信;
+   7          //  录音板与上位机通过串口通信;
+   8          //      上位机（录音软件）能对语音芯片进行相关操作;
+   9          //      包括识别芯片ID、能进行录音、播放、擦除、读取语音段地址等;
+  10          //      具体使用请参考《ISD17xx系列录音板使用手册Ver2.1》
+  11          /***************************************************************************/
+  12          //  硬件说明：
+  13          //  MCU：AT89C51/STC系列
+  14          //  晶振：11.0592MHz
+  15          //      串口波特率：1200bps
+  16          /***************************************************************************/
+  17          //  版本：Ver2.0
+  18          //  作者：Cowboy
+  19          //  日期：2011-3
+  20          //      QQ:       239447308     
+  21          //  http://our12580.taobao.com                                                                  
+  22          /***************************************************************************/
+  23          /***************************************************************************/
+  24          /***************************************************************************/
+  25          
+  26          /*头文件*/
+  27          #include "reg51.h"
+  28          #include "sound.h"
+  29          #include "ISD1700.H"
+  30          
+  31          #define  uchar unsigned char 
+  32          #define  uint  unsigned int
+  33          
+  34          /*********函数声明**************/
+  35          extern void  spi_pu (void);
+  36          extern void  comm_sate(void);
+  37          extern void  spi_stop (void);
+  38          extern void  spi_fwd (void);
+  39          extern void  spi_play(void);
+  40          extern void  isd1700_7byte_comm(uchar comm_par, uint star_addr, uint end_addr);
+  41          void  init(void);
+  42          void  PlaySoundTick(uchar  number);
+  43          void  LEDShow(void);
+  44          void  delay_isd(uint time);
+  45          
+  46          /*********SPI通信接口**********/
+  47          sbit ISD_SS=P0^7;
+  48          sbit ISD_MISO=P0^4;
+  49          sbit ISD_MOSI=P0^5;
+  50          sbit ISD_SCLK=P0^6;
+  51          
+  52          sbit RUN_LED = P1^0;  //运行指示灯
+  53          
+  54          uchar RunLedTime;
+  55          bit playflg;
+C51 COMPILER V8.09   MAIN                                                                  05/08/2011 23:49:38 PAGE 2   
+
+  56          
+  57          void main(void)
+  58          {
+  59   1              init();                         //器件初始化
+  60   1              while(1)
+  61   1              {
+  62   2                      comm_sate();    //与上位机通信
+  63   2                      if(playflg)             //播放标志位
+  64   2                      {
+  65   3                              playflg = 0;  //清0
+  66   3                              spi_fwd();        //播放指针指向下一曲
+  67   3                              delay_isd(30000);  //延时
+  68   3                              spi_play();                //播放当前
+  69   3                      }
+  70   2              }
+  71   1      }
+  72          
+  73          void  init(void)
+  74          {           
+  75   1          TMOD=0x21;
+  76   1          SCON=0x50;
+  77   1              TL0=0x00;       //25ms
+  78   1          TH0=0x70;   //25ms           
+  79   1              TH1=0xE8;
+  80   1          TL1=0xE8;   //12M/1200bit/s/E6  11.0592M/E8
+  81   1              ET0=1;
+  82   1              EA=1;
+  83   1              TR0=1; 
+  84   1              TR1=1;
+  85   1              IT0 = 0;
+  86   1              EX0 = 1;
+  87   1              spi_pu();
+  88   1              P3 = 0xff;      
+  89   1              RunLedTime = 25;
+  90   1      }
+  91          
+  92          /************外部中断0服务函数**************/
+  93          void int0(void) interrupt 0
+  94          {       
+  95   1              playflg = 1;  //播放标志位置1，允许播放
+  96   1      }
+  97          
+  98          void tim0_sever(void) interrupt 1
+  99          {
+ 100   1              TL0=0x00;
+ 101   1          TH0=0x70;                                   //重新赋初值
+ 102   1              if(RunLedTime != 0)
+ 103   1              {
+ 104   2                      if( --RunLedTime == 0) 
+ 105   2              {
+ 106   3                              RUN_LED=~RUN_LED;        //1秒钟取反一次
+ 107   3                  RunLedTime = 25;
+ 108   3                      }
+ 109   2              }
+ 110   1      }
+ 111          
+ 112          
+ 113          void delay_isd(uint time)
+ 114          {
+ 115   1              while(time--!=0);
+ 116   1      }
+ 117          
+C51 COMPILER V8.09   MAIN                                                                  05/08/2011 23:49:38 PAGE 3   
+
+ 118          /**************获取指定语音段地址并播放，用户可根据实际需要进行增减******************/
+ 119          /**************对应的语音段地址在SOUND.H文件里，具体地址从录音软件中读取*************/
+ 120          
+ 121          void GetSound(uchar soundtick)
+ 122          {
+ 123   1              ISD_SS=0;
+ 124   1              switch(soundtick)
+ 125   1              {  
+ 126   2                      case 0:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_0A, sound_0B); }break;
+ 127   2                      case 1:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_1A, sound_1B); }break;
+ 128   2                  case 2:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_2A, sound_2B); }break;
+ 129   2                  case 3:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_3A, sound_3B); }break;
+ 130   2                  case 4:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_4A, sound_4B); }break;
+ 131   2                  case 5:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_5A, sound_5B); }break;
+ 132   2                  case 6:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_6A, sound_6B); }break;
+ 133   2                  case 7:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_7A, sound_7B); }break;
+ 134   2                  case 8:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_8A, sound_8B); }break;
+ 135   2                  case 9:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_9A, sound_9B); }break;
+ 136   2                  case 10:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_10A, sound_10B); }break;
+ 137   2                  case 11:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_11A, sound_11B); }break;
+ 138   2                  default: break;
+ 139   2           }
+ 140   1              ISD_SS=1;
+ 141   1      }
+ 142          
+ 143          /**********播放指定语音段************/
+ 144          void PlaySoundTick(uchar  number)
+ 145          {
+ 146   1                spi_stop ();
+ 147   1                delay_isd(30000);
+ 148   1            GetSound(number);
+ 149   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    282    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

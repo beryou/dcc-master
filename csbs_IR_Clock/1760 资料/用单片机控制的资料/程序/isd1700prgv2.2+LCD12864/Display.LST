@@ -1,0 +1,257 @@
+C51 COMPILER V7.06   DISPLAY                                                               06/13/2011 20:38:06 PAGE 1   
+
+
+C51 COMPILER V7.06, COMPILATION OF MODULE DISPLAY
+OBJECT MODULE PLACED IN Display.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE Display.c BROWSE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          #include "reg51.h"
+   2          #include "intrins.h"
+   3          #include "Display.h"
+   4          
+   5          sbit    LCD_BRESET      = P2^4;                 // from LCD busy flag
+   6          sbit    LCD_BF      = P2^7;     
+   7          sbit    LCD_REST    = P2^4; 
+   8          
+   9          sbit    LCD_EN          = P0^0;                 // enable the LCD
+  10          sbit    LCD_RW          = P0^1;                 // LCD read or write
+  11          sbit    LCD_DI          = P0^2;                 // LCD instruction or data
+  12          
+  13          sbit    LCD_CSA         = P1^6;                 // select the section A to Display
+  14          sbit    LCD_CSB         = P1^7;                 // select the section B to Display
+  15          
+  16          
+  17          unsigned char   LCD_Reset(void);
+  18          void            LCD_init(void);
+  19          unsigned char   LCD_commu(unsigned char comman,unsigned char comdata);
+  20          unsigned char   LCD_busy(void);
+  21          
+  22          
+  23          void    LCD_init(void)
+  24          {
+  25   1          unsigned char i;
+  26   1          i=5;
+  27   1              while(i--);
+  28   1            { if(LCD_Reset()==0)
+  29   2               { i=0 ; }
+  30   2            }
+  31   1              LCD_CSA=1;
+  32   1              LCD_CSB=0;
+  33   1              LCD_commu(LCD_WI,0x3e);
+  34   1              LCD_CSA=0;
+  35   1              LCD_CSB=1;
+  36   1              LCD_commu(LCD_WI,0x3e);
+  37   1              Clear_LCDRegion(0,0,128,8);
+  38   1              LCD_CSA=1;
+  39   1              LCD_CSB=0;
+  40   1              LCD_commu(LCD_WI,0xb8);
+  41   1              LCD_commu(LCD_WI,0x40);
+  42   1              LCD_commu(LCD_WI,0x3f);
+  43   1              LCD_commu(LCD_WI,0xc0);
+  44   1              LCD_CSA=0;
+  45   1              LCD_CSB=1;
+  46   1              LCD_commu(LCD_WI,0xb8);
+  47   1              LCD_commu(LCD_WI,0x40);
+  48   1              LCD_commu(LCD_WI,0x3f);
+  49   1              LCD_commu(LCD_WI,0xc0);
+  50   1              LCD_CSB=0;
+  51   1      }
+  52          
+  53          
+  54          void    Clear_LCDRegion(unsigned char Left_CorX,Left_CorYp,Right_CorX,nPage)
+  55          {
+C51 COMPILER V7.06   DISPLAY                                                               06/13/2011 20:38:06 PAGE 2   
+
+  56   1              unsigned char   nITEMP;
+  57   1              if(Right_CorX>127)      Right_CorX=127;
+  58   1              if(Left_CorX>63)
+  59   1              {
+  60   2                      LCD_CSA=0;
+  61   2                      LCD_CSB=1;
+  62   2                      nITEMP=Right_CorX-Left_CorX+1;
+  63   2                      Left_CorX=Left_CorX-64;
+  64   2                      Clear_LCDSChip(Left_CorX,Left_CorYp,nITEMP,nPage);
+  65   2              }
+  66   1              else if(Right_CorX<64)
+  67   1              {
+  68   2                      LCD_CSA=1;
+  69   2                      LCD_CSB=0;
+  70   2                      nITEMP=Right_CorX-Left_CorX+1;
+  71   2                      Clear_LCDSChip(Left_CorX,Left_CorYp,nITEMP,nPage);
+  72   2              }
+  73   1              else
+  74   1              {
+  75   2                      LCD_CSA=1;
+  76   2                      LCD_CSB=0;
+  77   2                      Clear_LCDSChip(Left_CorX,Left_CorYp,64-Left_CorX,nPage);
+  78   2      
+  79   2                      LCD_CSA=0;
+  80   2                      LCD_CSB=1;
+  81   2                      Clear_LCDSChip(0,Left_CorYp,Right_CorX-63,nPage);
+  82   2              }
+  83   1              LCD_CSA=0;
+  84   1              LCD_CSB=0;
+  85   1      }
+  86          
+  87          //------------------------------------------------------------------------------//
+  88          // Clear the LCD a region in the same drive chip.                                                               //
+  89          //------------------------------------------------------------------------------//
+  90          void    Clear_LCDSChip(unsigned char LeftCorX,LeftCorYP,nDataCol,nDataPage)
+  91          {
+  92   1              unsigned char   i,j;
+  93   1              for(j=0;j<nDataPage;j++)
+  94   1              {
+  95   2                      i=LeftCorYP+0xb8;
+  96   2                      LCD_commu(LCD_WI,i);
+  97   2                      i=LeftCorX+0x40;
+  98   2                      LCD_commu(LCD_WI,i);
+  99   2                      for(i=0;i<nDataCol;i++)
+ 100   2                      {
+ 101   3                              LCD_commu(LCD_WD,0x00);
+ 102   3                      }
+ 103   2                      LeftCorYP++;
+ 104   2              }
+ 105   1      }
+ 106          
+ 107          
+ 108          unsigned char   LCD_Reset(void)
+ 109          {
+ 110   1              unsigned char   LcdStatus,i,j;
+ 111   1              for(j=0;j<3;j++)
+ 112   1              {
+ 113   2                      LcdStatus=0;
+ 114   2                      LCD_CSA = 1;
+ 115   2                      LCD_CSB = 0;
+ 116   2      
+ 117   2                      i=LCD_busy();
+C51 COMPILER V7.06   DISPLAY                                                               06/13/2011 20:38:06 PAGE 3   
+
+ 118   2                      if(i>LCDBUSY)   {LcdStatus=2;}
+ 119   2                      LCD_CSA=0;
+ 120   2                      LCD_CSB = 1;
+ 121   2                      i=LCD_busy();
+ 122   2                      if(i>LCDBUSY)   {LcdStatus=LcdStatus+4;}
+ 123   2      
+ 124   2                      if(LcdStatus==0)        {LCD_CSB=0;     break;} 
+ 125   2              }
+ 126   1              return(LcdStatus);
+ 127   1      }
+ 128          
+ 129          
+ 130          
+ 131          unsigned char   LCD_commu(unsigned char comman,unsigned char comdata)
+ 132          {
+ 133   1              unsigned char k;
+ 134   1              switch(comman)
+ 135   1              {
+ 136   2                      case 0x00:                                                                              //write instruction to the LCD
+ 137   2                      {       comman=LCD_busy();
+ 138   3                              LCD_DI  = 0;                  
+ 139   3                              LCD_RW  = 0;
+ 140   3                              P2              = comdata;
+ 141   3                              k=LCD_TAS;
+ 142   3                              while(k--);     
+ 143   3      
+ 144   3                              LCD_EN  = 1;
+ 145   3                              k=LCD_TDDW;
+ 146   3                              while(k--);     
+ 147   3                              k=LCD_TDSW;
+ 148   3                              while(k--);     
+ 149   3      
+ 150   3                              LCD_EN  = 0;
+ 151   3                              comdata = comman;
+ 152   3                              break;
+ 153   3                      }
+ 154   2      
+ 155   2                      case 0x01:      {       comdata=LCD_busy();     break;}         //the LCD status and instruction
+ 156   2      
+ 157   2                      case 0x02:                                                                              //write the data to the LCD
+ 158   2                      {       comman=LCD_busy();
+ 159   3                              LCD_DI  = 1;                  
+ 160   3                              LCD_RW  = 0;
+ 161   3                              P2              = comdata;
+ 162   3                              k=LCD_TAS;
+ 163   3                              while(k--);     
+ 164   3      
+ 165   3                              LCD_EN  = 1;
+ 166   3                              k=LCD_TDDW;
+ 167   3                              while(k--);     
+ 168   3      
+ 169   3                              k=LCD_TDSW;
+ 170   3                              while(k--);     
+ 171   3      
+ 172   3                              LCD_EN  = 0;
+ 173   3                              comdata = comman+1;
+ 174   3                              break;
+ 175   3                      }
+ 176   2      
+ 177   2                      case 0x03:                                                                              //read the data from the LCD
+ 178   2                      {       comman=LCD_busy();
+ 179   3                              LCD_DI  = 1;                  
+C51 COMPILER V7.06   DISPLAY                                                               06/13/2011 20:38:06 PAGE 4   
+
+ 180   3                              LCD_RW  = 1;
+ 181   3                              k=LCD_TAS;
+ 182   3                              while(k--);     
+ 183   3      
+ 184   3                              LCD_EN  = 1;
+ 185   3                              k=LCD_TDSW;
+ 186   3                              while(k--);     
+ 187   3                              comdata = P2;
+ 188   3                              LCD_EN  = 0;
+ 189   3                              break;
+ 190   3                      }
+ 191   2                      default:{comdata=0xee;break;}
+ 192   2              }
+ 193   1              LCD_DI  = 0;                  
+ 194   1              LCD_RW  = 1;
+ 195   1              return(comdata);                                                                        //return data\AC\status
+ 196   1      }
+ 197          
+ 198          //------------------------------------------------------------------------------//
+ 199          // Read the LCD status,checking if LCD is busy and waiting to it is not busy    //
+ 200          //------------------------------------------------------------------------------//
+ 201          unsigned char   LCD_busy(void)
+ 202          {
+ 203   1              unsigned char i,j;
+ 204   1              LCD_EN  = 0;
+ 205   1              LCD_DI  = 0;                  
+ 206   1              LCD_RW  = 1;
+ 207   1              for(j=0;j<250;j++)
+ 208   1              {
+ 209   2                      P2=P2 | 0x90;
+ 210   2                      _nop_();
+ 211   2                      LCD_EN  = 1;
+ 212   2                      i=LCD_TDDW;
+ 213   2                      while(i--);     
+ 214   2      
+ 215   2                      if(!(LCD_BF || LCD_BRESET))     {j=P2;  break;} 
+ 216   2                      LCD_EN  = 0;
+ 217   2                      P2=0x00;
+ 218   2                      i=LCD_TDDW;
+ 219   2                      while(i--);     
+ 220   2              }
+ 221   1              LCD_EN = 0;
+ 222   1              return(j);
+ 223   1      }
+ 224          
+ 225          
+ 226          
+ 227          
+ 228          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    677    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      23
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

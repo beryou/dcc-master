@@ -1,0 +1,240 @@
+C51 COMPILER V7.06   MAIN                                                                  06/13/2011 20:38:05 PAGE 1   
+
+
+C51 COMPILER V7.06, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+stmt level    source
+
+   1          #define  uchar unsigned char 
+   2          #define  uint  unsigned int
+   3          
+   4          
+   5          #include "reg51.h"
+   6          #include "sound.h"
+   7          #include "ISD1700.H"
+   8          #include "LCD12864.h"
+   9          
+  10          
+  11          
+  12          void  init(void);
+  13          void  PlaySoundTick(uchar  number);
+  14          void  LEDShow(void);
+  15          void  delay_isd(uint time);
+  16          void  DisplayInfo(void);
+  17          void  DisRunTime(void);
+  18          
+  19          sbit ISD_SS=P0^7;
+  20          sbit ISD_MISO=P0^4;
+  21          sbit ISD_MOSI=P0^5;
+  22          sbit ISD_SCLK=P0^6;
+  23          
+  24          sbit RUN_LED = P1^0;
+  25          sbit LCD_BL = P0^3;
+  26          
+  27          sbit K1 = P3^3;
+  28          sbit K2 = P3^4;
+  29          sbit K3 = P3^5;
+  30          sbit K4 = P3^2;
+  31          
+  32          
+  33          uchar RunLedTime;
+  34          uchar WaitTime;
+  35          uchar Second,Minute;
+  36          uchar DisMenu;
+  37          bit playflg;
+  38          bit LCD_UP;
+  39          
+  40          
+  41          void main(void)
+  42          {
+  43   1              init();
+  44   1              LCD_init();
+  45   1              lcd_xt_start();
+  46   1              TR0=1;
+  47   1              Clear_LCDRegion(0,0,128,8);
+  48   1              DisplayInfo();
+  49   1              while(1)
+  50   1              {
+  51   2                      comm_sate();
+  52   2                      if(!K4)
+  53   2                      {
+  54   3                              while(!K4);
+  55   3                              spi_fwd();
+C51 COMPILER V7.06   MAIN                                                                  06/13/2011 20:38:05 PAGE 2   
+
+  56   3                              delay_isd(30000);
+  57   3                              spi_play();
+  58   3                      }
+  59   2                      if(!K1)  //按下K1可切换液晶背光灯
+  60   2                      {
+  61   3                              while(!K1);
+  62   3                              LCD_BL = ~LCD_BL;
+  63   3                      }
+  64   2      
+  65   2                      if(LCD_UP)
+  66   2                      {
+  67   3                              LCD_UP = 0;
+  68   3                              Clear_LCDRegion(0,6,128,2);
+  69   3                      }
+  70   2                      
+  71   2                      switch(DisMenu)
+  72   2                      {
+  73   3                              case 0: DisRunTime(); break;
+  74   3                              case 1: PrintfChar(48,0,"K1:");
+  75   3                                              PrintfHz(48,24,"切换背光");break;
+  76   3                              case 3: PrintfChar(48,0,"Enjoy o(_)o "); break;
+  77   3                              case 2: PrintfChar(48,0,"QQ:239447308"); break;
+  78   3                              default:DisRunTime(); break;
+  79   3                      }
+  80   2                      
+  81   2              }
+  82   1      }
+  83          
+  84          void DisplayInfo(void)
+  85          {
+  86   1      //      uchar ISDDevID;
+  87   1              PrintfHz(0,0,"语音芯片开发系统");
+  88   1              PrintfHz(16,0,"固件版本");
+  89   1              PrintfChar(16,64,":Ver2.01");
+  90   1              PrintfHz(32,0,"芯片型号");
+  91   1              spi_devid();
+  92   1      //      ISDDevID = ISD_COMM_RAM_C[2];
+  93   1              switch(ISD_COMM_RAM_C[2])
+  94   1              {
+  95   2                      case 0x90: PrintfChar(32,64,":ISD1720"); break;
+  96   2                      case 0x80: PrintfChar(32,64,":ISD1730"); break;
+  97   2                      case 0xB0: PrintfChar(32,64,":ISD1740"); break;
+  98   2                      case 0xA8: PrintfChar(32,64,":ISD1750"); break;
+  99   2                      case 0xA0: PrintfChar(32,64,":ISD1760"); break;
+ 100   2                      case 0xD0: PrintfChar(32,64,":ISD1790"); break;
+ 101   2                      case 0xC8: PrintfChar(32,64,"ISD17120"); break;
+ 102   2                      case 0xC0: PrintfChar(32,64,"ISD17150"); break;
+ 103   2                      case 0xF0: PrintfChar(32,64,"ISD17180"); break;
+ 104   2                      case 0xE8: PrintfChar(32,64,"ISD17210"); break;
+ 105   2                      case 0xE0: PrintfChar(32,64,"ISD17240"); break;
+ 106   2                      default:   PrintfChar(32,64,":"); 
+ 107   2                                         PrintfHz(32,72,"未知");
+ 108   2              }
+ 109   1              PrintfHz(48,0,"运行时间");
+ 110   1              PrintfChar(48,64,":");
+ 111   1              PrintfChar(48,88,":");
+ 112   1      
+ 113   1      }
+ 114          
+ 115          void DisRunTime(void)
+ 116          {
+ 117   1              PrintfHz(48,0,"运行时间");
+C51 COMPILER V7.06   MAIN                                                                  06/13/2011 20:38:05 PAGE 3   
+
+ 118   1              PrintfChar(48,64,":");
+ 119   1              PrintfChar(48,88,":");
+ 120   1              PrintfData(48,72,Minute/10);
+ 121   1              PrintfData(48,80,Minute%10);
+ 122   1              PrintfData(48,96,Second/10);
+ 123   1              PrintfData(48,104,Second%10);
+ 124   1      }
+ 125          
+ 126          void  init(void)
+ 127          {           
+ 128   1          TMOD=0x21;
+ 129   1          SCON=0x50;
+ 130   1              TL0=0x00;       //25ms
+ 131   1          TH0=0x70;   //25ms           
+ 132   1              TH1=0xE8;
+ 133   1          TL1=0xE8;   //波特率：1200bps（12MHz：0xE6 11.0592MHz：0xE8）
+ 134   1              ET0=1;
+ 135   1              EA=1;
+ 136   1              
+ 137   1              TR1=1;
+ 138   1              IT0 = 0;
+ 139   1              EX0 = 0;
+ 140   1              spi_pu();
+ 141   1              P3 = 0xff;      
+ 142   1              RunLedTime = 25;
+ 143   1              WaitTime = 125;
+ 144   1      }
+ 145          
+ 146          
+ 147          void tim0_sever(void) interrupt 1
+ 148          {
+ 149   1              TL0=0x00;
+ 150   1          TH0=0x70;   
+ 151   1              if(RunLedTime != 0)
+ 152   1              {
+ 153   2                      if( --RunLedTime == 0) 
+ 154   2              {
+ 155   3                              RUN_LED=~RUN_LED;
+ 156   3                              Second++;
+ 157   3                              if(Second>59)
+ 158   3                              {
+ 159   4                                      Second = 0;
+ 160   4                                      Minute++;
+ 161   4                                      if(Minute>59) Minute = 0;
+ 162   4                              }
+ 163   3                  RunLedTime = 25;
+ 164   3                      }
+ 165   2              }
+ 166   1              if(WaitTime  != 0)
+ 167   1              {
+ 168   2                      if( --WaitTime  == 0) 
+ 169   2              {
+ 170   3                              LCD_UP = 1;
+ 171   3                              WaitTime = 125;
+ 172   3                              DisMenu++;
+ 173   3                              if(DisMenu>3) DisMenu = 0;
+ 174   3                      }
+ 175   2              }
+ 176   1      }
+ 177          
+ 178          
+ 179          void delay_isd(uint time)
+C51 COMPILER V7.06   MAIN                                                                  06/13/2011 20:38:05 PAGE 4   
+
+ 180          {
+ 181   1              while(time--!=0);
+ 182   1      }
+ 183          
+ 184          void GetSound(uchar soundtick)
+ 185          {
+ 186   1              ISD_SS=0;
+ 187   1              switch(soundtick)
+ 188   1              {  
+ 189   2                      case 0:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_0A, sound_0B); }break;
+ 190   2                      case 1:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_1A, sound_1B); }break;
+ 191   2                  case 2:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_2A, sound_2B); }break;
+ 192   2                  case 3:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_3A, sound_3B); }break;
+ 193   2                  case 4:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_4A, sound_4B); }break;
+ 194   2                  case 5:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_5A, sound_5B); }break;
+ 195   2                  case 6:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_6A, sound_6B); }break;
+ 196   2                  case 7:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_7A, sound_7B); }break;
+ 197   2                  case 8:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_8A, sound_8B); }break;
+ 198   2                  case 9:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_9A, sound_9B); }break;
+ 199   2                  case 10:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_10A, sound_10B); }break;
+ 200   2                  case 11:{ isd1700_7byte_comm(ISD1700_SET_PLAY|ISD_LED, sound_11A, sound_11B); }break;
+ 201   2                  default: break;
+ 202   2           }
+ 203   1              ISD_SS=1;
+ 204   1      }
+ 205          
+ 206          void PlaySoundTick(uchar  number)
+ 207          {
+ 208   1                spi_stop ();
+ 209   1                delay_isd(30000);
+ 210   1            GetSound(number);
+ 211   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    825    ----
+   CONSTANT SIZE    =    198    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
